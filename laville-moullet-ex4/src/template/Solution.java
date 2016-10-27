@@ -1,36 +1,28 @@
 package template;
 
-import org.omg.CORBA.VersionSpecHelper;
-
 public class Solution {
 	
-	private double totalDistance;
+	private double totalCost;
 	
-	private double[] weights;
-	private int[] vehiclesFirstTask;
-	private int[] taskActions;
+	private int[] weights;
+	private AgentTask[] vehiclesFirstTask;
 	
-	public Solution(double totalDistance, double[] weights, int[] vehiclesFirstTask, int[] taskActions) {
-		this.totalDistance = totalDistance;
+	public Solution(double totalCost, int[] weights, AgentTask[] vehiclesFirstTask) {
+		this.totalCost = totalCost;
 		this.weights = weights.clone();
 		this.vehiclesFirstTask = vehiclesFirstTask.clone();
-		this.taskActions = taskActions.clone();
 	}
 	
-	public double getTotalDistance() {
-		return totalDistance;
+	public double getTotalCost() {
+		return totalCost;
 	}
 	
-	public double[] getWeights() {
+	public int[] getWeights() {
 		return weights.clone();
 	}
 	
-	public int[] getVehiclesFirstTask() {
+	public AgentTask[] getVehiclesFirstTask() {
 		return vehiclesFirstTask.clone();
 	}
 	
-	public int[] getTaskActions() {
-		return taskActions.clone();
-	}
-
 }
