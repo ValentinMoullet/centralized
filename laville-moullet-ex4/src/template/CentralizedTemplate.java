@@ -2,6 +2,7 @@ package template;
 
 //the list of imports
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
 import logist.LogistSettings;
@@ -40,7 +41,7 @@ public class CentralizedTemplate implements CentralizedBehavior {
         // this code is used to get the timeouts
         LogistSettings ls = null;
         try {
-            ls = Parsers.parseSettings("config\\settings_default.xml");
+            ls = Parsers.parseSettings("config/settings_default.xml");
         }
         catch (Exception exc) {
             System.out.println("There was a problem loading the configuration file.");
@@ -59,6 +60,10 @@ public class CentralizedTemplate implements CentralizedBehavior {
     @Override
     public List<Plan> plan(List<Vehicle> vehicles, TaskSet tasks) {
         long time_start = System.currentTimeMillis();
+        
+        for (Vehicle v : vehicles) {
+        	System.out.println(v.capacity());
+        }
         
         /*
 //		System.out.println("Agent " + agent.id() + " has tasks " + tasks);
@@ -83,48 +88,215 @@ public class CentralizedTemplate implements CentralizedBehavior {
     private List<Plan> localSearchPlan(List<Vehicle> vehicles, TaskSet tasks) {
     	// Create first solution
     	
+    	System.out.println("There are " + tasks.size() + " tasks");
     	Solution currentSolution = createInitSolution(vehicles, tasks);
+    	System.out.println("Init sol created");
     	Solution oldSolution = null;
     	
     	do {
     		oldSolution = currentSolution;
     		List<Solution> n = chooseNeighbours(oldSolution);
+    		//System.out.println("Neighbours chosen: " + n.size());
     		
     		currentSolution = findBestSolution(n);
+    		//System.out.println("Best solution found");
+    		//System.out.println("Diff: " + (oldSolution.getTotalCost() - currentSolution.getTotalCost()));
     		
-    	} while(oldSolution.getTotalCost() > currentSolution.getTotalCost());
+    	} while (oldSolution.getTotalCost() > currentSolution.getTotalCost());
+    	
+		System.out.println("Best solution cost: " + oldSolution.getTotalCost());
+    	printSolution(oldSolution, false);
     	
     	return createPlanFromSolution(oldSolution);
     }
     
-    private Solution findBestSolution(List<Solution> n) {
-		// TODO Auto-generated method stub
-		return null;
+    private List<Plan> createPlanFromSolution(Solution solution) {
+		List<Plan> toReturn = new ArrayList<Plan>();
+		for (int i = 0; i < solution.getVehiclesFirstTask().length; i++) {
+			AgentTask current = solution.getVehiclesFirstTask()[i];
+			Plan plan = new Plan(solution.getVehicles().get(i).getCurrentCity());
+			City currentCity = solution.getVehicles().get(i).getCurrentCity();
+			while (current != null) {
+				if (current.isPickup()) {
+					for (City c : currentCity.pathTo(current.getTask().pickupCity)) {
+						plan.appendMove(c);
+					}
+					plan.appendPickup(current.getTask());
+					currentCity = current.getTask().pickupCity;
+				}
+				else {
+					for (City c : currentCity.pathTo(current.getTask().deliveryCity)) {
+						plan.appendMove(c);
+					}
+					plan.appendDelivery(current.getTask());
+					currentCity = current.getTask().deliveryCity;
+				}
+				current = current.getNext();
+			}
+			toReturn.add(plan);
+		}
+		
+		return toReturn;
+	}
+
+	private Solution findBestSolution(List<Solution> n) {
+		Solution toReturn = null;
+		double minCost = Double.MAX_VALUE;
+		for (Solution sol : n) {
+			if (sol.getTotalCost() < minCost) {
+				minCost = sol.getTotalCost();
+				toReturn = sol;
+			}
+		}
+		
+		/*
+		System.out.println("Best solution weights: " + Arrays.toString(toReturn.getWeights()));
+		System.out.println("Best solution cost: " + toReturn.getTotalCost());
+		printSolution(toReturn);
+		*/
+
+		return toReturn;
 	}
 
 	private List<Solution> chooseNeighbours(Solution oldSolution) {
-		// TODO Auto-generated method stub
-		return null;
+		List<Solution> toReturn = new ArrayList<Solution>();
+		
+		List<Solution> newSolutions = new ArrayList<Solution>();
+		
+		// ---------------------- Exchange task within a vehicle ----------------------
+		
+		// Create new solutions (only copy of old one for now)
+		for (int i = 0; i < oldSolution.getWeights().length; i++) {
+			AgentTask current = oldSolution.getVehiclesFirstTask()[i];
+			
+			while (current != null && current.getNext() != null) {
+				AgentTask other = current.getNext();
+				while (other != null) {
+					Solution newSolution = oldSolution.clone();
+					newSolutions.add(newSolution);
+					other = other.getNext();
+				}
+				current = current.getNext();
+			}
+		}
+		
+		
+		int solIdx = 0;
+		for (int i = 0; i < oldSolution.getWeights().length; i++) {
+			AgentTask current = oldSolution.getVehiclesFirstTask()[i];
+			
+			// Exchange tasks in solution
+			boolean first = true;
+			
+			AgentTask newCurrent = null;
+			AgentTask newOther = null;
+			int a = 0;
+			
+			while (current != null && current.getNext() != null) {
+				int b = a + 1;
+				AgentTask other = current.getNext();
+				while (other != null) {
+					Solution sol = newSolutions.get(solIdx);
+					newCurrent = sol.getAgentTaskAt(i, a);
+					newOther = sol.getAgentTaskAt(i, b);
+					
+					if (newCurrent == null || newOther == null) {
+						throw new IllegalStateException("New solution does not correspond to the old one.");
+					}
+					
+					// Exchange
+					AgentTask beforeNewOther = newOther;
+					if (!newOther.equals(newCurrent.getNext())) {
+						// Get the element before the one we removed
+						beforeNewOther = sol.removeTaskForVehicle(i, newOther).get(0);
+						sol.addTaskForVehicle(i, newOther, newCurrent);
+					}
+					sol.removeTaskForVehicle(i, newCurrent);
+					sol.addTaskForVehicle(i, newCurrent, beforeNewOther);
+
+					// Set first of vehicle if needed
+					solIdx++;
+					if (sol.checkCorrectSolution()) {
+						
+						//System.out.println("ADD!!! " + newCurrent.getTask().id);
+						//printSolution(sol);
+						
+						toReturn.add(sol);
+					}
+					other = other.getNext();
+					b++;
+				}
+				first = false;
+				a++;
+				current = current.getNext();
+			}
+		}
+		
+		/*
+		System.out.println("---------------------------------------------------------");
+		for (Solution s : toReturn) {
+			printSolution(s);
+		}
+		*/
+		
+		// ---------------------- Change task of vehicle ----------------------
+		
+		newSolutions = new ArrayList<Solution>();
+		
+		// Create new solutions (only copy of old one for now)
+		for (int i = 0; i < oldSolution.getWeights().length; i++) {
+			for (int j = 0; j < oldSolution.getWeights().length; j++) {
+				if (i != j) {
+					Solution newSolution = oldSolution.clone();
+					newSolutions.add(newSolution);
+				}
+			}
+		}
+
+		for (int i = 0; i < oldSolution.getWeights().length; i++) {
+			for (int j = 0; j < oldSolution.getWeights().length; j++) {
+				if (i != j) {
+					Solution sol = newSolutions.get(i * oldSolution.getWeights().length + j - (i + (j > i ? 1 : 0)));
+					AgentTask firstTask = sol.getVehiclesFirstTask()[i];
+					if (firstTask == null) {
+						continue;
+					}
+					
+					if (!firstTask.isPickup()) {
+						throw new IllegalStateException("Cannot have a deliver first for a vehicle in a solution.");
+					}
+					
+					if (firstTask.getNext() == null) {
+						throw new IllegalStateException("Cannot have a pickup but no delivery for the same vehicle.");
+					}
+					
+					sol.removeTaskForVehicle(i, firstTask);
+					AgentTask correspondingDeliver = sol.removeTaskForVehicle(i, firstTask.getTask(), !firstTask.isPickup()).get(1);
+					
+					sol.addTaskForVehicle(j, correspondingDeliver, null);
+					sol.addTaskForVehicle(j, firstTask, null);
+					
+					if (sol.checkCorrectSolution()) {
+						toReturn.add(sol);
+					}
+				}
+			}
+			
+		}
+		
+		return toReturn;
 	}
 
 	private Solution createInitSolution(List<Vehicle> vehicles, TaskSet tasks) {
-    	int vehiclesIdx = 0;
+    	int vehiclesIdx = 2;
     	AgentTask lastTask = null;
     	int[] weights = new int[vehicles.size()];
     	AgentTask[] vehiclesFirstTask = new AgentTask[vehicles.size()];
     	double totalCost = 0.0;
     	
+    	Vehicle currentVehicle = vehicles.get(vehiclesIdx);
+    	
     	for (Task task : tasks) {
-    		if (weights[vehiclesIdx] + task.weight > vehicles.get(vehiclesIdx).capacity()) {
-    			vehiclesIdx++;
-    			lastTask = null;
-    			if (vehiclesIdx >= vehicles.size()) {
-    				System.out.println("Unsolvable situation: tasks are too heavy for vehicle.");
-    				return null;
-    			}
-    		}
-    		
-    		Vehicle currentVehicle = vehicles.get(vehiclesIdx);
     		
     		AgentTask aTask1 = new AgentTask(task, true);
     		AgentTask aTask2 = new AgentTask(task, false);
@@ -134,9 +306,10 @@ public class CentralizedTemplate implements CentralizedBehavior {
     			System.out.println("Unsolvable situation: one task is too heavy for one vehicle.");
     			return null;
     		}
-    		
+    		    		
     		if (lastTask == null) {
     			// New vehicle
+    			// Should we add the cost from current city to first city?
     			vehiclesFirstTask[vehiclesIdx] = aTask1;
     		}
     		else {
@@ -148,7 +321,9 @@ public class CentralizedTemplate implements CentralizedBehavior {
     		lastTask = aTask2;
     	}
     	
-    	return new Solution(totalCost, weights, vehiclesFirstTask);
+    	System.out.println("Cost of init solution: " + totalCost);
+    	
+    	return new Solution(totalCost, weights, vehiclesFirstTask, vehicles);
     }
 
     private Plan naivePlan(Vehicle vehicle, TaskSet tasks) {
@@ -174,5 +349,30 @@ public class CentralizedTemplate implements CentralizedBehavior {
             current = task.deliveryCity;
         }
         return plan;
+    }
+    
+    private void printSolution(Solution sol, boolean id) {
+    	for (int i = 0; i < sol.getWeights().length; i++) {
+    		AgentTask current = sol.getVehiclesFirstTask()[i];
+    		System.out.println("Vehicle " + i);
+    		while (current != null) {
+    			System.out.print(current.isPickup() ? "pickup" : "deliver");
+    			System.out.print(":");
+    			if (id) {
+        			System.out.print(current.getTask().id + " ; ");
+
+    			}
+    			else {
+    				if (current.isPickup()) {
+            			System.out.print(current.getTask().pickupCity + "(" + current.getTask().weight + ") ; ");
+    				}
+    				else {
+            			System.out.print(current.getTask().deliveryCity + "(" + current.getTask().weight + ") ; ");
+    				}
+    			}
+    			current = current.getNext();
+    		}
+    		System.out.println();
+    	}
     }
 }
