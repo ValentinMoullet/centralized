@@ -3,12 +3,12 @@
 	<classpathentry kind="src" path="src"/>
 	<classpathentry kind="src" path="doc"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.6"/>
-	<classpathentry kind="lib" path="/Users/valentin/Documents/EPFL/Intelligent Agents/centralized/logist/lib/colt.jar"/>
-	<classpathentry kind="lib" path="/Users/valentin/Documents/EPFL/Intelligent Agents/centralized/logist/lib/commons-math-1.1.jar"/>
-	<classpathentry kind="lib" path="/Users/valentin/Documents/EPFL/Intelligent Agents/centralized/logist/lib/jdom.jar"/>
-	<classpathentry kind="lib" path="/Users/valentin/Documents/EPFL/Intelligent Agents/centralized/logist/lib/jsolver.jar"/>
-	<classpathentry kind="lib" path="/Users/valentin/Documents/EPFL/Intelligent Agents/centralized/logist/lib/plot.jar"/>
-	<classpathentry kind="lib" path="/Users/valentin/Documents/EPFL/Intelligent Agents/centralized/logist/lib/repast.jar"/>
-	<classpathentry kind="lib" path="/Users/valentin/Documents/EPFL/Intelligent Agents/centralized/logist/logist.jar"/>
+	<classpathentry kind="lib" path="C:/Users/Quentin/Documents/INF Master 1/Intelligent agents/p4/centralized/logist/logist.jar"/>
+	<classpathentry kind="lib" path="C:/Users/Quentin/Documents/INF Master 1/Intelligent agents/p4/centralized/logist/lib/colt.jar"/>
+	<classpathentry kind="lib" path="C:/Users/Quentin/Documents/INF Master 1/Intelligent agents/p4/centralized/logist/lib/commons-math-1.1.jar"/>
+	<classpathentry kind="lib" path="C:/Users/Quentin/Documents/INF Master 1/Intelligent agents/p4/centralized/logist/lib/jdom.jar"/>
+	<classpathentry kind="lib" path="C:/Users/Quentin/Documents/INF Master 1/Intelligent agents/p4/centralized/logist/lib/jsolver.jar"/>
+	<classpathentry kind="lib" path="C:/Users/Quentin/Documents/INF Master 1/Intelligent agents/p4/centralized/logist/lib/plot.jar"/>
+	<classpathentry kind="lib" path="C:/Users/Quentin/Documents/INF Master 1/Intelligent agents/p4/centralized/logist/lib/repast.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

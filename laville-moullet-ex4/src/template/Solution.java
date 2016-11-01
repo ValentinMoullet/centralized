@@ -10,65 +10,65 @@ import logist.task.Task;
 import logist.topology.Topology.City;
 
 public class Solution {
-	
+
 	private double totalCost;
-	
+
 	private int[] weights;
 	private AgentTask[] vehiclesFirstTask;
 	private List<Vehicle> vehicles;
-	
+
 	public Solution(double totalCost, int[] weights, AgentTask[] vehiclesFirstTask, List<Vehicle> vehicles) {
 		this.totalCost = totalCost;
 		this.weights = weights.clone();
 		this.vehiclesFirstTask = vehiclesFirstTask.clone();
 		this.vehicles = new ArrayList<Vehicle>(vehicles);
 	}
-	
+
 	public double getTotalCost() {
 		return totalCost;
 	}
-	
+
 	public int[] getWeights() {
 		return weights.clone();
 	}
-	
+
 	public AgentTask[] getVehiclesFirstTask() {
 		return vehiclesFirstTask.clone();
 	}
-	
+
 	public List<Vehicle> getVehicles() {
 		return this.vehicles;
 	}
-	
+
 	public void setVehiclesFirstTask(int i, AgentTask agentTask) {
 		this.vehiclesFirstTask[i] = agentTask;
 	}
-	
+
 	public Solution clone() {
 		AgentTask[] vehiclesFirstTask = new AgentTask[this.vehiclesFirstTask.length];
-		
+
 		for (int vehiclesIdx = 0; vehiclesIdx < this.weights.length; vehiclesIdx++) {
 			AgentTask currentTask = this.vehiclesFirstTask[vehiclesIdx];
 			AgentTask lastTask = null;
-			
+
 			while (currentTask != null) {
 				AgentTask newTask = new AgentTask(currentTask.getTask(), currentTask.isPickup());
-				
+
 				if (lastTask == null) {
 					vehiclesFirstTask[vehiclesIdx] = newTask;
 				}
 				else {
 					lastTask.setNext(newTask);
 				}
-				
+
 				lastTask = newTask;
 				currentTask = currentTask.getNext();
 			}
 		}
-		
+
 		return new Solution(totalCost, weights, vehiclesFirstTask, this.vehicles);
 	}
-	
+
 	public boolean checkCorrectSolution() {
 		for (int vehiclesIdx = 0; vehiclesIdx < this.weights.length; vehiclesIdx++) {
 			AgentTask currentTask = this.vehiclesFirstTask[vehiclesIdx];
@@ -96,7 +96,7 @@ public class Solution {
 				if (currentWeight > this.vehicles.get(vehiclesIdx).capacity()) {
 					return false;
 				}
-				
+
 				currentTask = currentTask.getNext();
 			}
 		}
@@ -125,18 +125,19 @@ public class Solution {
 			if (toAdd.isPickup()) {
 				weights[vehicleIdx] += toAdd.getTask().weight;
 			}
-			
+
 			return;
 		}
-		
+
 		if (this.vehiclesFirstTask[vehicleIdx] == null) {
 			throw new IllegalStateException("Cannot add task not at the first place when no task for vehicle.");
 		}
-		
+
 		if (toAdd.isPickup()) {
 			weights[vehicleIdx] += toAdd.getTask().weight;
 		}
 		AgentTask current = this.vehiclesFirstTask[vehicleIdx];
+		// TODO maybe not useful
 		while (current != null) {
 			if (current.equals(taskBeforeToAdd)) {
 				AgentTask temp = current.getNext();
@@ -148,20 +149,20 @@ public class Solution {
 			current = current.getNext();
 		}
 	}
-	
+
 	private void recomputeCostWhenAddingTask(AgentTask lastTask, AgentTask toAdd, AgentTask next, Vehicle vehicle) {
 		City lastCity = null;
 		City city = toAdd.isPickup() ? toAdd.getTask().pickupCity : toAdd.getTask().deliveryCity;
 		City nextCity = null;
-		
+
 		if (lastTask != null) {
 			lastCity = lastTask.isPickup() ? lastTask.getTask().pickupCity : lastTask.getTask().deliveryCity;;
 		}
-		
+
 		if (next != null) {
 			nextCity = next.isPickup() ? next.getTask().pickupCity : next.getTask().deliveryCity;;
 		}
-		
+
 		if (lastTask == null) {
 			this.totalCost += (vehicle.getCurrentCity().distanceTo(city)) * vehicle.costPerKm();
 			if (next == null) {
@@ -182,7 +183,7 @@ public class Solution {
 				this.totalCost -= (lastCity.distanceTo(nextCity)) * vehicle.costPerKm();
 			}
 		}
-		
+
 	}
 
 	// Return prev and the one we remove
@@ -212,7 +213,7 @@ public class Solution {
 		}
 		return null;
 	}
-	
+
 	public List<AgentTask> removeTaskForVehicle(int vehicleIdx, AgentTask aTask) {
 		return removeTaskForVehicle(vehicleIdx, aTask.getTask(), aTask.isPickup());
 	}
@@ -221,15 +222,15 @@ public class Solution {
 		City lastCity = null;
 		City city = current.isPickup() ? current.getTask().pickupCity : current.getTask().deliveryCity;
 		City nextCity = null;
-		
+
 		if (lastTask != null) {
 			lastCity = lastTask.isPickup() ? lastTask.getTask().pickupCity : lastTask.getTask().deliveryCity;;
 		}
-		
+
 		if (next != null) {
 			nextCity = next.isPickup() ? next.getTask().pickupCity : next.getTask().deliveryCity;;
 		}
-		
+
 		if (lastTask == null) {
 			this.totalCost -= (vehicle.getCurrentCity().distanceTo(city)) * vehicle.costPerKm();
 			if (next == null) {
@@ -251,7 +252,7 @@ public class Solution {
 				this.totalCost += (lastCity.distanceTo(nextCity)) * vehicle.costPerKm();
 			}
 		}
-		
+
 	}
-	
+
 }
