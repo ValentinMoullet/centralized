@@ -13,14 +13,12 @@ public class Solution {
 
 	private double totalCost;
 
-	private int[] weights;
 	private AgentTask[] vehiclesFirstTask;
 	private int[] taskCounter;
 	private List<Vehicle> vehicles;
 
-	public Solution(double totalCost, int[] weights, AgentTask[] vehiclesFirstTask, List<Vehicle> vehicles, int[] taskCounter) {
+	public Solution(double totalCost, AgentTask[] vehiclesFirstTask, List<Vehicle> vehicles, int[] taskCounter) {
 		this.totalCost = totalCost;
-		this.weights = weights.clone();
 		this.vehiclesFirstTask = vehiclesFirstTask.clone();
 		this.vehicles = new ArrayList<Vehicle>(vehicles);
 		this.taskCounter = taskCounter.clone();
@@ -28,10 +26,6 @@ public class Solution {
 
 	public double getTotalCost() {
 		return totalCost;
-	}
-
-	public int[] getWeights() {
-		return weights.clone();
 	}
 
 	public AgentTask[] getVehiclesFirstTask() {
@@ -53,7 +47,7 @@ public class Solution {
 	public Solution clone() {
 		AgentTask[] vehiclesFirstTask = new AgentTask[this.vehiclesFirstTask.length];
 
-		for (int vehiclesIdx = 0; vehiclesIdx < this.weights.length; vehiclesIdx++) {
+		for (int vehiclesIdx = 0; vehiclesIdx < this.vehicles.size(); vehiclesIdx++) {
 			AgentTask currentTask = this.vehiclesFirstTask[vehiclesIdx];
 			AgentTask lastTask = null;
 
@@ -72,11 +66,11 @@ public class Solution {
 			}
 		}
 
-		return new Solution(totalCost, weights, vehiclesFirstTask, this.vehicles, this.taskCounter);
+		return new Solution(totalCost, vehiclesFirstTask, this.vehicles, this.taskCounter);
 	}
 
 	public boolean checkCorrectSolution() {
-		for (int vehiclesIdx = 0; vehiclesIdx < this.weights.length; vehiclesIdx++) {
+		for (int vehiclesIdx = 0; vehiclesIdx < this.vehicles.size(); vehiclesIdx++) {
 			AgentTask currentTask = this.vehiclesFirstTask[vehiclesIdx];
 			Set<Task> toDeliver = new HashSet<Task>();
 			int currentWeight = 0;
@@ -128,9 +122,6 @@ public class Solution {
 			toAdd.setNext(this.vehiclesFirstTask[vehicleIdx]);
 			this.vehiclesFirstTask[vehicleIdx] = toAdd;
 			recomputeCostWhenAddingTask(taskBeforeToAdd, toAdd, toAdd.getNext(), this.vehicles.get(vehicleIdx));
-			if (toAdd.isPickup()) {
-				weights[vehicleIdx] += toAdd.getTask().weight;
-			}
 			this.taskCounter[vehicleIdx]++;
 
 			return;
@@ -140,22 +131,13 @@ public class Solution {
 			throw new IllegalStateException("Cannot add task not at the first place when no task for vehicle.");
 		}
 
-		if (toAdd.isPickup()) {
-			weights[vehicleIdx] += toAdd.getTask().weight;
-		}
 		this.taskCounter[vehicleIdx]++;
-		AgentTask current = this.vehiclesFirstTask[vehicleIdx];
-		// TODO maybe not useful
-		while (current != null) {
-			if (current.equals(taskBeforeToAdd)) {
-				AgentTask temp = current.getNext();
-				current.setNext(toAdd);
-				toAdd.setNext(temp);
-				recomputeCostWhenAddingTask(current, toAdd, temp, this.vehicles.get(vehicleIdx));
-				break;
-			}
-			current = current.getNext();
-		}
+		
+		AgentTask temp = taskBeforeToAdd.getNext();
+		taskBeforeToAdd.setNext(toAdd);
+		toAdd.setNext(temp);
+		recomputeCostWhenAddingTask(taskBeforeToAdd, toAdd, temp, this.vehicles.get(vehicleIdx));
+		
 	}
 
 	private void recomputeCostWhenAddingTask(AgentTask lastTask, AgentTask toAdd, AgentTask next, Vehicle vehicle) {
@@ -208,9 +190,6 @@ public class Solution {
 					lastTask.setNext(current.getNext());
 				}
 				this.recomputeCostWhenRemovingTask(lastTask, current, current.getNext(), this.vehicles.get(vehicleIdx));
-				if (current.isPickup()) {
-					weights[vehicleIdx] -= current.getTask().weight;
-				}
 				current.setNext(null);
 				List<AgentTask> toReturn = new ArrayList<AgentTask>();
 				toReturn.add(lastTask);

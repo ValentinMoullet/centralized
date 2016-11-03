@@ -58,10 +58,6 @@ public class CentralizedTemplate implements CentralizedBehavior {
     public List<Plan> plan(List<Vehicle> vehicles, TaskSet tasks) {
         long time_start = System.currentTimeMillis();
 
-        for (Vehicle v : vehicles) {
-        	System.out.println(v.capacity());
-        }
-
         List<Plan> plans = localSearchPlan(vehicles, tasks);
 
         long time_end = System.currentTimeMillis();
@@ -74,21 +70,16 @@ public class CentralizedTemplate implements CentralizedBehavior {
     private List<Plan> localSearchPlan(List<Vehicle> vehicles, TaskSet tasks) {
     	// Create first solution
 
-    	System.out.println("There are " + tasks.size() + " tasks");
     	Solution currentSolution = createInitSolution(vehicles, tasks);
-    	System.out.println("Init sol created");
     	Solution bestSolution = currentSolution;
 
     	int iteration = 0;
-    	int maxIteration = 1000000;
+    	int maxIteration = 5000000;
 
     	do {
-
     		iteration++;
-    		System.out.println("new iteration " +iteration);
 
-    		Solution randomN = null;
-    		
+    		Solution randomN;
     		if (Math.random() < 0.5) {
     			// Change task order
     			randomN = changingTaskOrder(currentSolution);
@@ -109,11 +100,15 @@ public class CentralizedTemplate implements CentralizedBehavior {
     	} while (iteration < maxIteration);
 
 		System.out.println("Best solution cost: " + bestSolution.getTotalCost() + ", with iteration " + iteration);
-    	printSolution(bestSolution, true);
+    	System.out.println();
+		printSolution(bestSolution, true);
+		System.out.println();
 
     	return createPlanFromSolution(bestSolution);
     }
 
+    
+    // Acceptance probability function (https://en.wikipedia.org/wiki/Simulated_annealing)
     private double P(Solution currentSolution, Solution newSolution, double timeRatio) {
     	
     	if (currentSolution.getTotalCost() >= newSolution.getTotalCost()) {
@@ -153,26 +148,12 @@ public class CentralizedTemplate implements CentralizedBehavior {
 		return toReturn;
 	}
 
-	private Solution findBestSolution(List<Solution> n) {
-		Solution toReturn = null;
-		double minCost = Double.MAX_VALUE;
-		for (Solution sol : n) {
-			if (sol.getTotalCost() < minCost) {
-				minCost = sol.getTotalCost();
-				toReturn = sol;
-			}
-		}
-
-		n.remove(toReturn);
-		return toReturn;
-	}
-
 	private Solution changingTaskOrder(Solution oldSolution) {
 		
 		Solution toReturn = null;
 		
 		while (toReturn == null) {
-			int vehicleIdx = (int) (Math.random() * oldSolution.getVehiclesFirstTask().length);
+			int vehicleIdx = (int) (Math.random() * oldSolution.getVehicles().size());
 			int firstTaskIdx = (int) (Math.random() * oldSolution.getTaskNumber(vehicleIdx));
 			int secondTaskIdx = (int) (Math.random() * oldSolution.getTaskNumber(vehicleIdx));
 			if (firstTaskIdx == secondTaskIdx || oldSolution.getTaskNumber(vehicleIdx) <= 3) {
@@ -211,8 +192,8 @@ public class CentralizedTemplate implements CentralizedBehavior {
 
 		Solution toReturn = null;
 		while (toReturn == null) {
-			int firstVIdx = (int) (Math.random() * oldSolution.getVehiclesFirstTask().length);
-			int secondVIdx = (int) (Math.random() * oldSolution.getVehiclesFirstTask().length);
+			int firstVIdx = (int) (Math.random() * oldSolution.getVehicles().size());
+			int secondVIdx = (int) (Math.random() * oldSolution.getVehicles().size());
 			int taskIdx = (int) (Math.random() * oldSolution.getTaskNumber(firstVIdx));
 			if (firstVIdx == secondVIdx || oldSolution.getTaskNumber(firstVIdx) < 2) {
 				continue;
@@ -244,7 +225,6 @@ public class CentralizedTemplate implements CentralizedBehavior {
 	private Solution createInitSolution(List<Vehicle> vehicles, TaskSet tasks) {
     	int vehiclesIdx = 0;
     	AgentTask[] lastTasks = new AgentTask[vehicles.size()];
-    	int[] weights = new int[vehicles.size()];
     	int[] taskCounter = new int[vehicles.size()];
     	AgentTask[] vehiclesFirstTask = new AgentTask[vehicles.size()];
     	double totalCost = 0.0;
@@ -276,44 +256,19 @@ public class CentralizedTemplate implements CentralizedBehavior {
 
     		totalCost += (task.pickupCity.distanceTo(task.deliveryCity)) * currentVehicle.costPerKm();
     		lastTasks[vehiclesIdx] = aTask2;
-
-    		//vehiclesIdx = (vehiclesIdx + 1) % vehicles.size();
     	}
 
     	System.out.println("Cost of init solution: " + totalCost);
 
-    	return new Solution(totalCost, weights, vehiclesFirstTask, vehicles, taskCounter);
+    	return new Solution(totalCost, vehiclesFirstTask, vehicles, taskCounter);
     }
 
-    private Plan naivePlan(Vehicle vehicle, TaskSet tasks) {
-        City current = vehicle.getCurrentCity();
-        Plan plan = new Plan(current);
-
-        for (Task task : tasks) {
-            // move: current city => pickup location
-            for (City city : current.pathTo(task.pickupCity)) {
-                plan.appendMove(city);
-            }
-
-            plan.appendPickup(task);
-
-            // move: pickup location => delivery location
-            for (City city : task.path()) {
-                plan.appendMove(city);
-            }
-
-            plan.appendDelivery(task);
-
-            // set current city
-            current = task.deliveryCity;
-        }
-        return plan;
-    }
-
+	// Helper function
     private void printSolution(Solution sol, boolean id) {
-    	for (int i = 0; i < sol.getWeights().length; i++) {
+    	System.out.println("Solution:");
+    	for (int i = 0; i < sol.getVehicles().size(); i++) {
     		AgentTask current = sol.getVehiclesFirstTask()[i];
-    		System.out.println("Vehicle " + i);
+    		System.out.println("Vehicle " + i + ":");
     		while (current != null) {
     			System.out.print(current.isPickup() ? "pickup" : "deliver");
     			System.out.print(":");
