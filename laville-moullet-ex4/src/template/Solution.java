@@ -15,13 +15,15 @@ public class Solution {
 
 	private int[] weights;
 	private AgentTask[] vehiclesFirstTask;
+	private int[] taskCounter;
 	private List<Vehicle> vehicles;
 
-	public Solution(double totalCost, int[] weights, AgentTask[] vehiclesFirstTask, List<Vehicle> vehicles) {
+	public Solution(double totalCost, int[] weights, AgentTask[] vehiclesFirstTask, List<Vehicle> vehicles, int[] taskCounter) {
 		this.totalCost = totalCost;
 		this.weights = weights.clone();
 		this.vehiclesFirstTask = vehiclesFirstTask.clone();
 		this.vehicles = new ArrayList<Vehicle>(vehicles);
+		this.taskCounter = taskCounter.clone();
 	}
 
 	public double getTotalCost() {
@@ -38,6 +40,10 @@ public class Solution {
 
 	public List<Vehicle> getVehicles() {
 		return this.vehicles;
+	}
+	
+	public int getTaskNumber(int vIdx) {
+		return this.taskCounter[vIdx];
 	}
 
 	public void setVehiclesFirstTask(int i, AgentTask agentTask) {
@@ -66,7 +72,7 @@ public class Solution {
 			}
 		}
 
-		return new Solution(totalCost, weights, vehiclesFirstTask, this.vehicles);
+		return new Solution(totalCost, weights, vehiclesFirstTask, this.vehicles, this.taskCounter);
 	}
 
 	public boolean checkCorrectSolution() {
@@ -125,6 +131,7 @@ public class Solution {
 			if (toAdd.isPickup()) {
 				weights[vehicleIdx] += toAdd.getTask().weight;
 			}
+			this.taskCounter[vehicleIdx]++;
 
 			return;
 		}
@@ -136,6 +143,7 @@ public class Solution {
 		if (toAdd.isPickup()) {
 			weights[vehicleIdx] += toAdd.getTask().weight;
 		}
+		this.taskCounter[vehicleIdx]++;
 		AgentTask current = this.vehiclesFirstTask[vehicleIdx];
 		// TODO maybe not useful
 		while (current != null) {
@@ -190,6 +198,7 @@ public class Solution {
 	public List<AgentTask> removeTaskForVehicle(int vehicleIdx, Task task, boolean b) {
 		AgentTask current = this.vehiclesFirstTask[vehicleIdx];
 		AgentTask lastTask = null;
+		this.taskCounter[vehicleIdx]--;
 		while (current != null) {
 			if (current.getTask().equals(task) && current.isPickup() == b) {
 				if (lastTask == null) {
